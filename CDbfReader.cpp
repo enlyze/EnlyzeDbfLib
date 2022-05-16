@@ -280,7 +280,44 @@ CDbfReader::ReadNextRecord()
 }
 
 void
-CDbfReader::ResetToFirstRecord()
+CDbfReader::JumpToFirstRecord()
 {
     m_DbfFile.seekg(m_DataStart);
+}
+
+std::variant<std::monostate, CDbfError>
+CDbfReader::JumpToLastRecord()
+{
+    JumpToFirstRecord();
+    size_t CurrentPosition = m_DataStart;
+    size_t LastRecordPosition = m_DataStart;
+
+    // A record consists of a single status byte followed by all fields in their custom lengths.
+    size_t RecordLength = std::accumulate(m_Fields.cbegin(), m_Fields.cend(), 1, [](size_t Sum, const FieldInfo& Info) {
+        return Sum + Info.Length;
+    });
+
+    for (;;)
+    {
+        char RecordStatus;
+        if (!m_DbfFile.read(&RecordStatus, 1))
+        {
+            return CDbfError(L"Could not read RecordStatus");
+        }
+
+        if (RecordStatus == DBASE_FILE_END_BYTE)
+        {
+            // We have reached end-of-file and no more records follow.
+            m_DbfFile.seekg(LastRecordPosition);
+            return std::monostate();
+        }
+
+        if(RecordStatus == RECORD_NOT_DELETED)
+        {
+            LastRecordPosition = CurrentPosition;
+        }
+
+        CurrentPosition += RecordLength;
+        m_DbfFile.seekg(CurrentPosition);
+    }
 }

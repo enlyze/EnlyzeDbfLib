@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <fstream>
 #include <memory>
+#include <numeric>
 #include <string>
 #include <variant>
 #include <vector>
@@ -29,7 +30,8 @@ public:
     std::variant<size_t, CDbfError> GetFieldIndex(const std::string& strField) const;
     const std::vector<FieldInfo>& GetFields() const { return m_Fields; }
     std::variant<std::vector<std::string>, std::monostate, CDbfError> ReadNextRecord();
-    void ResetToFirstRecord();
+    void JumpToFirstRecord();
+    std::variant<std::monostate, CDbfError> JumpToLastRecord();
 
 private:
     size_t m_DataStart;
