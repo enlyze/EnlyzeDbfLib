@@ -1,6 +1,7 @@
 //
 // EnlyzeDbfLib - Library for reading dBASE .dbf database files
-// Written by Colin Finck for ENLYZE GmbH
+// Copyright (c) 2022 Colin Finck, ENLYZE GmbH <c.finck@enlyze.com>
+// SPDX-License-Identifier: MIT
 //
 
 #include <EnlyzeWinStringLib.h>
