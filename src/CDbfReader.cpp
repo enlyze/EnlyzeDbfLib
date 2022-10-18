@@ -26,7 +26,7 @@ _ReadDbt(std::ifstream& DbtFile, const std::wstring& wstrDbfFilePath)
     wstrDbtFilePath.pop_back();
     wstrDbtFilePath.push_back(L't');
 
-    DbtFile.open(wstrDbtFilePath, std::ios::binary);
+    DbtFile.open(wstrDbtFilePath.c_str(), std::ios::binary);
     if (!DbtFile)
     {
         return CDbfError(L"Could not open DBT memo file \"" + wstrDbtFilePath + L"\"");
@@ -105,7 +105,7 @@ std::variant<std::unique_ptr<CDbfReader>, CDbfError>
 CDbfReader::ReadDbf(const std::wstring& wstrDbfFilePath)
 {
     // Open the .dbf file for reading.
-    std::ifstream DbfFile(wstrDbfFilePath, std::ios::binary);
+    std::ifstream DbfFile(wstrDbfFilePath.c_str(), std::ios::binary);
     if (!DbfFile)
     {
         return CDbfError(L"Could not open \"" + wstrDbfFilePath + L"\"");
