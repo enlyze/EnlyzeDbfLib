@@ -19,7 +19,7 @@ std::ifstream& _ReadObject(std::ifstream& File, T& ObjectData)
 
 
 static std::variant<std::monostate, CDbfError>
-_ReadDbt(std::ifstream& DbtFile, const std::wstring& wstrDbfFilePath)
+_BeginDbt(std::ifstream& DbtFile, uint16_t &BlockLength, const std::wstring& wstrDbfFilePath)
 {
     // Open the corresponding memo file (.dbt)
     std::wstring wstrDbtFilePath = wstrDbfFilePath;
@@ -40,10 +40,12 @@ _ReadDbt(std::ifstream& DbtFile, const std::wstring& wstrDbfFilePath)
     }
 
     // Verify the header.
-    if (Header.BlockLength != DBT_DEFAULT_BLOCK_LENGTH)
+    if (std::find(std::begin(DBT_BLOCK_LENGTHS), std::end(DBT_BLOCK_LENGTHS), Header.BlockLength) == std::end(DBT_BLOCK_LENGTHS))
     {
         return CDbfError(L"DBT memo file \"" + wstrDbtFilePath + L"\" has unknown block length " + std::to_wstring(Header.BlockLength));
     }
+
+    BlockLength = Header.BlockLength;
 
     return std::monostate();
 }
@@ -96,8 +98,8 @@ _ReadDbfFieldDescriptors(std::ifstream& DbfFile, uint16_t HeaderSize)
 }
 
 
-CDbfReader::CDbfReader(std::ifstream&& DbfFile, std::ifstream&& DbtFile, std::vector<FieldInfo> Fields, size_t DataStart)
-    : m_DataStart(DataStart), m_Fields(Fields), m_DbfFile(std::move(DbfFile)), m_DbtFile(std::move(DbtFile))
+CDbfReader::CDbfReader(std::ifstream&& DbfFile, std::ifstream&& DbtFile, std::vector<FieldInfo> Fields, size_t DataStart, uint16_t BlockLength)
+    : m_DataStart(DataStart), m_BlockLength(BlockLength), m_Fields(Fields), m_DbfFile(std::move(DbfFile)), m_DbtFile(std::move(DbtFile))
 {
 }
 
@@ -120,6 +122,7 @@ CDbfReader::ReadDbf(const std::wstring& wstrDbfFilePath)
 
     // Verify the header.
     std::ifstream DbtFile;
+    uint16_t BlockLength = 0;
     if (Header.Version == DBASE_III_PLUS_VERSION)
     {
         // Nothing else to do.
@@ -127,7 +130,7 @@ CDbfReader::ReadDbf(const std::wstring& wstrDbfFilePath)
     else if (Header.Version == DBASE_IV_WITH_MEMO_VERSION)
     {
         // Open and verify the corresponding memo file (.dbt)
-        auto ReadDbtResult = _ReadDbt(DbtFile, wstrDbfFilePath);
+        auto ReadDbtResult = _BeginDbt(DbtFile, BlockLength, wstrDbfFilePath);
         if (const auto pError = std::get_if<CDbfError>(&ReadDbtResult))
         {
             return *pError;
@@ -153,7 +156,8 @@ CDbfReader::ReadDbf(const std::wstring& wstrDbfFilePath)
             std::move(DbfFile),
             std::move(DbtFile),
             Fields,
-            DataStart
+            DataStart,
+            BlockLength
         )
     );
 }
@@ -197,7 +201,7 @@ CDbfReader::_ReadMemoColumn(std::string& Column)
     }
 
     // Calculate the block address in the .dbt memo file from the block number currently stored in the Column variable.
-    size_t BlockBegin = BlockNumber * DBT_DEFAULT_BLOCK_LENGTH;
+    size_t BlockBegin = BlockNumber * m_BlockLength;
     m_DbtFile.seekg(BlockBegin);
 
     // Read the block header.
