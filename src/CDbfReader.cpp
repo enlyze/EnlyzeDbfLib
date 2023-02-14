@@ -113,7 +113,9 @@ CDbfReader::ReadDbf(const std::wstring& wstrDbfFilePath)
 
     // Read the header.
     DbfHeader dbfHeader;
-    DbtHeader dbtHeader;
+    // We use the default block length, unless required otherwise
+    uint16_t BlockLength = DBT_BLOCK_LENGTHS[0];
+
     if (!_ReadObject(DbfFile, dbfHeader))
     {
         return CDbfError(L"Could not read DbfHeader from \"" + wstrDbfFilePath + L"\"");
@@ -134,7 +136,7 @@ CDbfReader::ReadDbf(const std::wstring& wstrDbfFilePath)
             return *pError;
         }
         // we got the header, which we need for the block length
-        dbtHeader = *std::get_if<DbtHeader>(&ReadDbtResult);
+        BlockLength = std::get_if<DbtHeader>(&ReadDbtResult)->BlockLength;
     }
     else
     {
@@ -157,7 +159,7 @@ CDbfReader::ReadDbf(const std::wstring& wstrDbfFilePath)
             std::move(DbtFile),
             Fields,
             DataStart,
-            dbtHeader.BlockLength
+            BlockLength
         )
     );
 }
