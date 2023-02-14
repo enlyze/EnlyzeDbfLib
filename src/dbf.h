@@ -76,9 +76,10 @@ struct DbtBlockHeader
 #define RECORD_NOT_DELETED          ' '
 #define DBASE_FILE_END_BYTE         0x1A
 
-#define DBT_DEFAULT_BLOCK_LENGTH    512
 #define DBT_BLOCK_MAGIC             0x0008FFFF
 
+// 512 is the default one, 1024 has been observed in the wild too
+uint16_t DBT_BLOCK_LENGTHS[] = { 512, 1024 };
 
 // Arbitrary limits set by us to be on the safe side regarding memory allocations
 #define DBT_MAX_BLOCK_NUMBER        1048576
